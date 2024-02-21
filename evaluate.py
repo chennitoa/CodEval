@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 
+import difflib
 import os
 import re
 import subprocess
@@ -341,7 +342,7 @@ def exit_code(test_case_exit_code):
         None
     """
     global expected_exit_code
-    expected_exit_code = float(test_case_exit_code)
+    expected_exit_code = int(test_case_exit_code)
 
 
 def start_server(timeout_sec, kill_timeout_sec, *server_cmd):
@@ -408,6 +409,13 @@ tag_func_map = {
 def setup():
     # Create files
     open('fileinput', 'w').close()
+    
+    # Make evaluationLogs directory and if it exists, clean every file in it
+    os.makedirs('evaluationLogs', exist_ok=True)
+
+    for file in os.listdir('evaluationLogs'):
+        os.remove(os.path.join('evaluationLogs', file))
+
 
 
 def evaluate():
@@ -514,13 +522,13 @@ def check_test():
 
     # Difflog handling
     with open('difflog', 'w') as outfile:
-        diff_popen = subprocess.Popen('diff -U1 -a ./youroutput ./expectedoutput | cat -te | head -22',
+        diff_popen = subprocess.Popen(['diff', '-U1', '-a', './youroutput', './expectedoutput', '|', 'cat', '-te', '|', 'head', '-22'],
                                       stdout=outfile, stderr=outfile, text=True)
         diff_popen.communicate()
 
     # Append to difflog second time around
     with open('difflog', 'a') as outfile:
-        diff_popen = subprocess.Popen('diff -U1 -a ./yourerror ./expectederror | cat -te | head -22',
+        diff_popen = subprocess.Popen(['diff', '-U1', '-a', './yourerror', './expectederror', '|', 'cat', '-te', '|', 'head', '-22'],
                                       stdout=outfile, stderr=outfile, text=True)
         diff_popen.communicate()
 
@@ -566,8 +574,8 @@ def check_test():
 
             # Cleanup
             print(f'    Command ran: {test_args}')
-            for file in os.listdir('evaluationlogs'):
-                with open(file, 'r') as infile:
+            for file in os.listdir('evaluationLogs'):
+                with open(os.path.join('evaluationLogs', file), 'r') as infile:
                     file_lines = infile.readlines()
 
                 # Print entire file
